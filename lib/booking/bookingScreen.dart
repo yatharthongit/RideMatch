@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
+import 'package:ridematch/controllers/map.dart';
 import 'package:ridematch/views/dashboard/Screens/Dashboard.dart';
 import 'package:ridematch/views/home/Screens/homeScreen.dart';
 import 'dart:convert';
@@ -105,6 +106,8 @@ class _BookingScreenState extends State<BookingScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+
+            MapContainer(),
             SizedBox(height: 30,),
             _buildLabel("From"),
             _buildTextField(controller: fromController, hint: "Enter starting location"),

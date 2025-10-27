@@ -4,6 +4,7 @@ import 'package:ridematch/services/LocationPermission.dart';
 import 'package:ridematch/utils/images.dart';
 import 'package:ridematch/views/%20auth/Screens/LoginScreen.dart';
 import 'package:ridematch/views/onboarding/onboardScreen.dart';
+import 'package:ridematch/views/ride_detail/ridedetails.dart';
 import 'dart:async';
 
 import 'package:shared_preferences/shared_preferences.dart';
@@ -43,7 +44,7 @@ class _SplashScreenState extends State<SplashScreen> {
     if (isOnboarded == true) {
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (_) => LocationPermissionScreen()),
+        MaterialPageRoute(builder: (_) => LoginScreen()),
       );
     } else {
       Navigator.pushReplacement(

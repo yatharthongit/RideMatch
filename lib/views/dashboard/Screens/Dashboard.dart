@@ -19,8 +19,9 @@ class _DashboardScreenState extends State<DashboardScreen>
   final List<Widget> _screens = const [
     HomeScreen(),
     BookingScreen(),
-    Poolingscreen(),
+    PoolingScreen(),
     ProfileScreen(),
+
   ];
 
   @override

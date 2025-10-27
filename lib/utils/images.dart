@@ -12,6 +12,8 @@ class Images{
   static const String onboard_three = 'assets/images/onboard_three.png';
   static const String bgwave = 'assets/images/bgwave.png';
   static const String banner_one = 'assets/images/banner_one.png';
+  static const String banner_new = 'assets/images/newbanner.png';
+
 
 
 

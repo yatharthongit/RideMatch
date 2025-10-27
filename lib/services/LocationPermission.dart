@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:ridematch/views/%20auth/Screens/LoginScreen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:lottie/lottie.dart'; // 👈 For animation (add in pubspec.yaml)
 
 class LocationPermissionScreen extends StatefulWidget {
   const LocationPermissionScreen({super.key});
@@ -15,49 +15,61 @@ class LocationPermissionScreen extends StatefulWidget {
 
 class _LocationPermissionScreenState extends State<LocationPermissionScreen> {
   bool _isLoading = false;
+  LatLng? _currentPosition;
+  GoogleMapController? _mapController;
+  final Set<Marker> _markers = {};
 
   Future<void> _requestLocationPermission() async {
     setState(() => _isLoading = true);
 
-    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-    if (!serviceEnabled) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please enable location services.")),
-      );
-      setState(() => _isLoading = false);
-      return;
-    }
+    try {
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) throw "Enable location services";
 
-    LocationPermission permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.denied) {
-      permission = await Geolocator.requestPermission();
-    }
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) throw "Permission denied";
+      }
 
-    if (permission == LocationPermission.deniedForever) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text("Location permission permanently denied.")),
-      );
-      setState(() => _isLoading = false);
-      return;
-    }
+      if (permission == LocationPermission.deniedForever) {
+        throw "Permission permanently denied";
+      }
 
-    if (permission == LocationPermission.whileInUse ||
-        permission == LocationPermission.always) {
       Position position = await Geolocator.getCurrentPosition(
           desiredAccuracy: LocationAccuracy.high);
+
+      setState(() {
+        _currentPosition = LatLng(position.latitude, position.longitude);
+        _markers.add(Marker(
+          markerId: MarkerId("currentLocation"),
+          position: _currentPosition!,
+        ));
+      });
 
       SharedPreferences prefs = await SharedPreferences.getInstance();
       await prefs.setDouble('userLat', position.latitude);
       await prefs.setDouble('userLng', position.longitude);
+    } catch (e) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(e.toString())));
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
 
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => const LoginScreen()),
+  void _proceedToLogin() {
+    if (_currentPosition == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Please enable location first.")),
       );
+      return;
     }
 
-    setState(() => _isLoading = false);
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (_) => const LoginScreen()),
+    );
   }
 
   @override
@@ -80,12 +92,6 @@ class _LocationPermissionScreenState extends State<LocationPermissionScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  // 🌍 Animated location pin
-                  // Lottie.asset(
-                  //   'assets/images/location.png', // 👈 add your Lottie file
-                  //   height: 200,
-                  //   repeat: true,
-                  // ),
                   const SizedBox(height: 20),
 
                   Text(
@@ -97,7 +103,6 @@ class _LocationPermissionScreenState extends State<LocationPermissionScreen> {
                     ),
                   ),
                   const SizedBox(height: 10),
-
                   Text(
                     "Allow access to your location so we can show nearby rides and drivers.",
                     textAlign: TextAlign.center,
@@ -108,8 +113,9 @@ class _LocationPermissionScreenState extends State<LocationPermissionScreen> {
                     ),
                   ),
 
-                  const SizedBox(height: 40),
+                  const SizedBox(height: 30),
 
+                  // 🔹 Turn On Location Button
                   _isLoading
                       ? const CircularProgressIndicator(color: Colors.white)
                       : ElevatedButton.icon(
@@ -137,8 +143,66 @@ class _LocationPermissionScreenState extends State<LocationPermissionScreen> {
                     ),
                   ),
 
-                  const SizedBox(height: 50),
+                  const SizedBox(height: 20),
 
+                  // 🔹 Show Map after permission
+                  _currentPosition == null
+                      ? const SizedBox.shrink()
+                      : Container(
+                    height: 300,
+                    width: double.infinity,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black26,
+                          blurRadius: 8,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(16),
+                      child: GoogleMap(
+                        initialCameraPosition: CameraPosition(
+                          target: _currentPosition!,
+                          zoom: 14,
+                        ),
+                        markers: _markers,
+                        myLocationEnabled: true,
+                        myLocationButtonEnabled: true,
+                        zoomControlsEnabled: false,
+                        onMapCreated: (GoogleMapController controller) {
+                          _mapController = controller;
+                        },
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 20),
+
+                  // 🔹 Confirm & Proceed Button
+                  ElevatedButton(
+                    onPressed: _proceedToLogin,
+                    child: Text(
+                      "Proceed",
+                      style: GoogleFonts.dmSans(
+                          fontSize: 16, fontWeight: FontWeight.w600),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.white.withOpacity(0.15),
+                      foregroundColor: Colors.white,
+                      elevation: 5,
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 60, vertical: 14),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(30)),
+                    ),
+                  ),
+
+                  const SizedBox(height: 30),
+
+                  // 🔹 Manual Selection
                   TextButton.icon(
                     onPressed: _requestLocationPermission,
                     icon: const Icon(Icons.pin_drop_outlined,
