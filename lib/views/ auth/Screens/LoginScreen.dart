@@ -19,15 +19,14 @@ class _LoginScreenState extends State<LoginScreen>
   final TextEditingController _passwordController = TextEditingController();
   bool _isLoading = false;
   bool _rememberMe = false;
-  bool _isSignUpPressed = false;
   bool _passwordVisible = false;
 
   late AnimationController _animationController;
   late Animation<Offset> _slideAnimation;
   late Animation<double> _fadeAnimation;
 
-  // final String apiUrl = "http://10.0.2.2:5000/api/auth/login";
-  final String apiUrl = "http://192.168.29.206:5000/api/auth/login";  // for login
+  // ⚙️ Your backend API URL
+  final String apiUrl = "http://192.168.29.206:5000/api/auth/login";
 
   @override
   void initState() {
@@ -77,7 +76,7 @@ class _LoginScreenState extends State<LoginScreen>
     String password = _passwordController.text.trim();
 
     if (username.isEmpty || password.isEmpty) {
-      _showSnackBar("Please enter both username and password");
+      _showSnackBar("Please enter both email and password");
       return;
     }
 
@@ -88,18 +87,22 @@ class _LoginScreenState extends State<LoginScreen>
         Uri.parse(apiUrl),
         headers: {"Content-Type": "application/json"},
         body: jsonEncode({
-          "email": _usernameController.text.trim(),  // use email
-          "password": _passwordController.text.trim(),
+          "email": username,
+          "password": password,
         }),
       );
-
 
       final data = jsonDecode(response.body);
 
       if (response.statusCode == 200 && data['success'] == true) {
         SharedPreferences prefs = await SharedPreferences.getInstance();
         await prefs.setString('token', data['token']);
-        await prefs.setString('username', username);
+        await prefs.setString('username', data['user']['name']);
+        await prefs.setString('userId', data['user']['id']);
+
+        print("✅ UserId saved: ${data['user']['id']}");
+
+        await prefs.setString('userEmail', data['user']['email']);
 
         if (_rememberMe) {
           await prefs.setString('password', password);
@@ -109,7 +112,6 @@ class _LoginScreenState extends State<LoginScreen>
           await prefs.setBool('rememberMe', false);
         }
 
-        _showSnackBar("Login Successful!");
         Navigator.pushReplacementNamed(context, '/home');
       } else {
         _showSnackBar(data['message'] ?? "Invalid credentials");
@@ -136,22 +138,21 @@ class _LoginScreenState extends State<LoginScreen>
       body: Stack(
         children: [
           AnimatedContainer(
-
             duration: const Duration(seconds: 2),
             decoration: const BoxDecoration(
               gradient: LinearGradient(
-                colors: [Colors.white,Color(0xffF6F7F7), ],
+                colors: [Colors.white, Color(0xffF6F7F7)],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
             ),
           ),
-
           SafeArea(
             child: SingleChildScrollView(
               physics: const BouncingScrollPhysics(),
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 35),
+                padding:
+                const EdgeInsets.symmetric(horizontal: 22, vertical: 35),
                 child: FadeTransition(
                   opacity: _fadeAnimation,
                   child: SlideTransition(
@@ -172,7 +173,7 @@ class _LoginScreenState extends State<LoginScreen>
                         Container(
                           padding: const EdgeInsets.all(25),
                           decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.8),
+                            color: Colors.white.withOpacity(0.9),
                             borderRadius: BorderRadius.circular(25),
                             boxShadow: [
                               BoxShadow(
@@ -207,8 +208,8 @@ class _LoginScreenState extends State<LoginScreen>
 
                               _buildTextField(
                                 controller: _usernameController,
-                                hintText: "Username",
-                                icon: Icons.person_outline,
+                                hintText: "Email",
+                                icon: Icons.email_outlined,
                               ),
                               const SizedBox(height: 18),
 
@@ -234,7 +235,8 @@ class _LoginScreenState extends State<LoginScreen>
                               const SizedBox(height: 12),
 
                               Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                mainAxisAlignment:
+                                MainAxisAlignment.spaceBetween,
                                 children: [
                                   Row(
                                     children: [
@@ -270,26 +272,25 @@ class _LoginScreenState extends State<LoginScreen>
                               ),
                               const SizedBox(height: 25),
 
-                              // 🌟 Animated Sign In Button
                               GestureDetector(
-                                onTapDown: (_) => setState(() => _isLoading = true),
-                                onTapUp: (_) {
-                                  setState(() => _isLoading = false);
-                                  loginUser();
-                                },
+                                onTap: loginUser,
                                 child: AnimatedContainer(
                                   duration: const Duration(milliseconds: 200),
                                   height: 50,
                                   decoration: BoxDecoration(
                                     gradient: const LinearGradient(
-                                      colors: [Color(0xffF15A29), Color(0xffF78145)],
+                                      colors: [
+                                        Color(0xffF15A29),
+                                        Color(0xffF78145)
+                                      ],
                                       begin: Alignment.topLeft,
                                       end: Alignment.bottomRight,
                                     ),
                                     borderRadius: BorderRadius.circular(15),
                                     boxShadow: [
                                       BoxShadow(
-                                        color: const Color(0xffF15A29).withOpacity(0.4),
+                                        color: const Color(0xffF15A29)
+                                            .withOpacity(0.4),
                                         blurRadius: 12,
                                         offset: const Offset(0, 5),
                                       ),
@@ -297,7 +298,8 @@ class _LoginScreenState extends State<LoginScreen>
                                   ),
                                   alignment: Alignment.center,
                                   child: _isLoading
-                                      ? const CircularProgressIndicator(color: Colors.white)
+                                      ? const CircularProgressIndicator(
+                                      color: Colors.white)
                                       : Text(
                                     "Sign In",
                                     style: GoogleFonts.dmSans(
@@ -324,7 +326,9 @@ class _LoginScreenState extends State<LoginScreen>
                                     onTap: () {
                                       Navigator.push(
                                         context,
-                                        MaterialPageRoute(builder: (_) => const SignUpScreen()),
+                                        MaterialPageRoute(
+                                            builder: (_) =>
+                                            const SignUpScreen()),
                                       );
                                     },
                                     child: Text(
@@ -342,11 +346,9 @@ class _LoginScreenState extends State<LoginScreen>
                           ),
                         ),
                         const SizedBox(height: 40),
-
                         Image.asset(
                           Images.bgcar,
                           fit: BoxFit.contain,
-
                           height: 300,
                           width: double.infinity,
                         ),
@@ -402,7 +404,8 @@ class _LoginScreenState extends State<LoginScreen>
             hintText: hintText,
             hintStyle: GoogleFonts.dmSans(color: Colors.grey[500]),
             border: InputBorder.none,
-            contentPadding: const EdgeInsets.symmetric(vertical: 18, horizontal: 16),
+            contentPadding:
+            const EdgeInsets.symmetric(vertical: 18, horizontal: 16),
           ),
         ),
       ),

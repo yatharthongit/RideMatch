@@ -3,6 +3,9 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:ridematch/views/profile/cards/help/HelpCenter.dart';
+import 'package:ridematch/views/profile/cards/myrides.dart';
+import 'package:ridematch/views/profile/cards/verfied%20document/verfiedDoc.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 
@@ -24,6 +27,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     fetchUserData();
   }
 
+  /// 🧾 Fetch user data
   Future<void> fetchUserData() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     String? token = prefs.getString('token');
@@ -40,8 +44,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
       );
 
       if (response.statusCode == 200) {
+        final data = json.decode(response.body);
         setState(() {
-          userData = json.decode(response.body);
+          userData = data['user'] ?? data;
           isLoading = false;
         });
       } else if (response.statusCode == 401) {
@@ -50,16 +55,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
         setState(() => isLoading = false);
       }
     } catch (e) {
+      debugPrint("❌ Error fetching profile: $e");
       setState(() => isLoading = false);
     }
   }
 
+  /// 🚪 Logout function
   Future<void> logout() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     await prefs.clear();
+    if (!mounted) return;
     Navigator.pushReplacementNamed(context, '/login');
   }
 
+  /// 🖼 Pick profile image
   Future<void> pickImage() async {
     final pickedFile =
     await ImagePicker().pickImage(source: ImageSource.gallery);
@@ -69,6 +78,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
+  /// ⬆ Upload new profile picture
   Future<void> uploadProfileImage(File image) async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     String? token = prefs.getString('token');
@@ -84,154 +94,285 @@ class _ProfileScreenState extends State<ProfileScreen> {
     var response = await request.send();
 
     if (response.statusCode == 200) {
-      fetchUserData(); // refresh profile data
+      await fetchUserData();
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Profile picture updated!")),
+        const SnackBar(content: Text("✅ Profile picture updated successfully")),
       );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Failed to upload profile image")),
+        const SnackBar(content: Text("⚠️ Failed to upload profile image")),
       );
     }
   }
 
+  /// 🧱 UI starts here
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        backgroundColor: const Color(0xff113F67),
+        title: Center(
+          child: Text(
+            "Profile",
+            style: GoogleFonts.dmSans(
+              color: Colors.white,
+              fontWeight: FontWeight.w600,
+              fontSize: 22,
+            ),
+          ),
+        ),
+      ),
       backgroundColor: Colors.white,
       body: SafeArea(
         child: isLoading
-            ? const Center(child: CircularProgressIndicator(color: Colors.black))
-            : Column(
-          children: [
-            const SizedBox(height: 30),
+            ? const Center(child: CircularProgressIndicator())
+            : SingleChildScrollView(
+          padding:
+          const EdgeInsets.symmetric(horizontal: 20, vertical: 25),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              /// 🧍 Profile Image
+              GestureDetector(
+                onTap: pickImage,
+                child: Stack(
+                  alignment: Alignment.bottomRight,
+                  children: [
+                    CircleAvatar(
+                      radius: 55,
+                      backgroundColor: Colors.grey.shade200,
+                      backgroundImage: _profileImage != null
+                          ? FileImage(_profileImage!)
+                          : (userData?['profileUrl'] != null
+                          ? NetworkImage(userData!['profileUrl'])
+                          : const AssetImage(
+                          'assets/images/default_avatar.png')
+                      as ImageProvider),
+                    ),
+                    Container(
+                      decoration: const BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Color(0xff09205f),
+                      ),
+                      padding: const EdgeInsets.all(6),
+                      child: const Icon(Icons.camera_alt,
+                          color: Colors.white, size: 18),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
 
-            // Profile Header
-            Column(
-              children: [
-                GestureDetector(
-                  onTap: pickImage,
-                  child: Stack(
-                    alignment: Alignment.bottomRight,
-                    children: [
-                      CircleAvatar(
-                        radius: 55,
-                        backgroundImage: _profileImage != null
-                            ? FileImage(_profileImage!)
-                            : (userData?['profileUrl'] != null
-                            ? NetworkImage(userData!['profileUrl'])
-                        as ImageProvider
-                            : const AssetImage(
-                            'assets/images/default_avatar.png')),
-                      ),
-                      Container(
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: Colors.black.withOpacity(0.8),
-                        ),
-                        padding: const EdgeInsets.all(6),
-                        child: const Icon(Icons.camera_alt,
-                            size: 18, color: Colors.white),
-                      ),
+              /// 🧾 Name + Email
+              Text(
+                userData?['name'] ?? 'Guest User',
+                style: GoogleFonts.dmSans(
+                  color: const Color(0xff09205f),
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                userData?['email'] ?? 'user@email.com',
+                style: GoogleFonts.dmSans(
+                  color: Colors.black54,
+                  fontSize: 14,
+                ),
+              ),
+              const SizedBox(height: 30),
+
+              /// 🪪 Account Info
+              _sectionTitle("Account Information"),
+              _infoCard("Full Name", userData?['name'] ?? "Not available"),
+              _infoCard("Email", userData?['email'] ?? "Not available"),
+              _infoCard("Phone", userData?['phone'] ?? "Not linked"),
+              _infoCard(
+                  "Member Since",
+                  (userData?['createdAt'] != null)
+                      ? userData!['createdAt']
+                      .toString()
+                      .substring(0, 10)
+                      : "N/A"),
+
+              const SizedBox(height: 30),
+
+              /// 🚗 Activities
+              _sectionTitle("Your Activities"),
+              _optionCard(Icons.document_scanner, "Verified Document",
+                      () {
+                        Navigator.push(context, MaterialPageRoute(builder: (context){
+                          return VerifiedDoc();
+                        }));
+
+                      }),
+              _optionCard(Icons.directions_car_rounded, "My Rides", () {
+                Navigator.push(context, MaterialPageRoute(builder: (context){
+                  return MyRidesScreen();
+                }));
+              }),
+              _optionCard(Icons.wallet_rounded, "Payment Methods", () {
+                Navigator.pushNamed(context, '/payments');
+              }),
+              _optionCard(
+                  Icons.support_agent_rounded, "Help Center", () {
+                Navigator.push(context, MaterialPageRoute(builder: (context){
+                  return HelpCenterPage() ;
+                }));
+              }),
+
+              const SizedBox(height: 30),
+
+              /// ⚙️ Settings
+              _sectionTitle("Settings"),
+              _optionCard(
+                  Icons.lock_rounded, "Privacy & Security", () {
+                Navigator.pushNamed(context, '/privacy');
+              }),
+              _optionCard(Icons.notifications_rounded, "Notifications",
+                      () {
+                    Navigator.pushNamed(context, '/notifications');
+                  }),
+              _optionCard(Icons.language_rounded, "Language Preferences",
+                      () {
+                    Navigator.pushNamed(context, '/languages');
+                  }),
+              _optionCard(Icons.info_outline_rounded, "About App", () {
+                Navigator.pushNamed(context, '/about');
+              }),
+
+              const SizedBox(height: 30),
+
+              /// 🚪 Logout Button
+              GestureDetector(
+                onTap: logout,
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(vertical: 15),
+                  decoration: BoxDecoration(
+                    color: Colors.redAccent,
+                    borderRadius: BorderRadius.circular(14),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.redAccent.withOpacity(0.3),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      )
                     ],
                   ),
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  userData?['name'] ?? 'User',
-                  style: GoogleFonts.dmSans(
-                    color: Colors.black,
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
+                  child: Center(
+                    child: Text(
+                      "Log Out",
+                      style: GoogleFonts.dmSans(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 16,
+                      ),
+                    ),
                   ),
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  "Member since ${userData?['createdAt']?.substring(0, 4) ?? '2022'}",
-                  style: GoogleFonts.dmSans(
-                    color: Colors.grey[600],
-                    fontSize: 14,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: const [
-                    Icon(Icons.star, color: Colors.amber, size: 18),
-                    SizedBox(width: 4),
-                    Text("4.9 (150+ ratings)",
-                        style: TextStyle(
-                            color: Colors.black54, fontSize: 14)),
-                  ],
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 30),
-
-            // Menu Bar (Trips, Payment, Help)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  _menuItem(Icons.directions_car, "Trips"),
-                  _menuItem(Icons.payment, "Payment"),
-                  _menuItem(Icons.help_outline, "Help"),
-                ],
               ),
-            ),
-
-            const SizedBox(height: 30),
-            Expanded(
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                decoration: BoxDecoration(
-                  color: Colors.grey[100],
-                  borderRadius: const BorderRadius.vertical(
-                      top: Radius.circular(30)),
-                ),
-                child: ListView(
-                  children: [
-                    const SizedBox(height: 25),
-                    _settingsTile(Icons.settings, "Account Settings"),
-                    _settingsTile(Icons.notifications,
-                        "Notification Preferences"),
-                    _settingsTile(Icons.lock, "Privacy"),
-                    _settingsTile(Icons.description, "Terms of Service"),
-                    _settingsTile(Icons.logout, "Log Out",
-                        onTap: logout, color: Colors.redAccent),
-                    const SizedBox(height: 40),
-                  ],
-                ),
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _menuItem(IconData icon, String title) {
-    return Column(
-      children: [
-        Icon(icon, color: Colors.black, size: 30),
-        const SizedBox(height: 6),
-        Text(title,
-            style: GoogleFonts.dmSans(color: Colors.black87, fontSize: 14)),
-      ],
+  /// 🧾 Section Title
+  Widget _sectionTitle(String title) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12, left: 4),
+      child: Align(
+        alignment: Alignment.centerLeft,
+        child: Text(
+          title,
+          style: GoogleFonts.dmSans(
+            color: Colors.black87,
+            fontWeight: FontWeight.w700,
+            fontSize: 18,
+          ),
+        ),
+      ),
     );
   }
 
-  Widget _settingsTile(IconData icon, String title,
-      {Color color = Colors.black87, VoidCallback? onTap}) {
-    return ListTile(
-      leading: Icon(icon, color: color),
-      title:
-      Text(title, style: GoogleFonts.dmSans(color: color, fontSize: 16)),
-      trailing: const Icon(Icons.arrow_forward_ios,
-          color: Colors.black26, size: 16),
+  /// 📋 Info Card
+  Widget _infoCard(String label, String value) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.grey.shade200),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.08),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          )
+        ],
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label,
+              style: GoogleFonts.dmSans(color: Colors.black54, fontSize: 14)),
+          Flexible(
+            child: Text(
+              value,
+              style: GoogleFonts.dmSans(
+                color: Colors.black87,
+                fontWeight: FontWeight.w500,
+                fontSize: 14,
+              ),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// ⚙️ Option Card (Now Clickable)
+  Widget _optionCard(IconData icon, String title, VoidCallback onTap) {
+    return GestureDetector(
       onTap: onTap,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 15),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.grey.shade200),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.grey.withOpacity(0.12),
+              blurRadius: 8,
+              offset: const Offset(0, 3),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Icon(icon, color: const Color(0xff09205f), size: 26),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Text(
+                title,
+                style: GoogleFonts.dmSans(
+                  color: Colors.black87,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+            const Icon(Icons.arrow_forward_ios,
+                color: Colors.black38, size: 16),
+          ],
+        ),
+      ),
     );
   }
 }

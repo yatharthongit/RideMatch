@@ -3,6 +3,7 @@ import 'package:ridematch/main.dart';
 import 'package:ridematch/services/LocationPermission.dart';
 import 'package:ridematch/utils/images.dart';
 import 'package:ridematch/views/%20auth/Screens/LoginScreen.dart';
+import 'package:ridematch/views/dashboard/Screens/Dashboard.dart';
 import 'package:ridematch/views/onboarding/onboardScreen.dart';
 import 'package:ridematch/views/ride_detail/ridedetails.dart';
 import 'dart:async';

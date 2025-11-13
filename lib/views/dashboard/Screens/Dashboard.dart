@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:ridematch/booking/bookingScreen.dart';
+
+// Import your actual screens
 import 'package:ridematch/views/home/Screens/homeScreen.dart';
-import 'package:ridematch/views/pooling/Screen/poolingScreen.dart';
+import 'package:ridematch/views/post/Screens/postScreen.dart';
+
 import 'package:ridematch/views/profile/Screen/profileScreen.dart';
+import 'package:ridematch/views/ride/rideScreen.dart';
+import 'package:ridematch/views/ride_detail/ridedetails.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -18,10 +22,9 @@ class _DashboardScreenState extends State<DashboardScreen>
 
   final List<Widget> _screens = const [
     HomeScreen(),
-    BookingScreen(),
-    PoolingScreen(),
+    RideScreen(),
+    PostScreen(),
     ProfileScreen(),
-
   ];
 
   @override
@@ -52,8 +55,8 @@ class _DashboardScreenState extends State<DashboardScreen>
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
               _buildNavItem(Icons.home_rounded, "Home", 0),
-              _buildNavItem(Icons.book_online_rounded, "Booking", 1),
-              _buildNavItem(Icons.directions_car_rounded, "Pool", 2),
+              _buildNavItem(Icons.directions_car_rounded, "Ride", 1),
+              _buildNavItem(Icons.post_add_rounded, "Post", 2),
               _buildNavItem(Icons.person_rounded, "Profile", 3),
             ],
           ),
