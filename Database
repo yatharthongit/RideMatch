@@ -1,0 +1,41 @@
+CREATE DATABASE ridepool;
+USE ridepool;
+
+CREATE TABLE users (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    email VARCHAR(150) NOT NULL,
+    phone VARCHAR(20),
+    password_hash VARCHAR(255) NOT NULL,
+    role ENUM('driver', 'rider', 'admin') DEFAULT 'rider',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    profile_url VARCHAR(300),
+    CONSTRAINT idx_users_email_unique UNIQUE (email)
+);
+
+
+CREATE TABLE rides (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    driver_id INT NOT NULL,
+    from_addr VARCHAR(255) NOT NULL,
+    to_addr VARCHAR(255) NOT NULL,
+    seats INT NOT NULL,
+    duration VARCHAR(50),
+    amount DECIMAL(10,2),
+    status ENUM('pending','active','completed','cancelled') DEFAULT 'pending',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    car_name VARCHAR(100),
+    car_number VARCHAR(50),
+    car_color VARCHAR(50),
+    date DATE,
+    time TIME,
+
+
+    CONSTRAINT rides_ibfk_1 FOREIGN KEY (driver_id)
+        REFERENCES users(id)
+        ON DELETE CASCADE
+        ON UPDATE CASCADE
+);
+
+
+CREATE INDEX driver_id_idx ON rides(driver_id);
