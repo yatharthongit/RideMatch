@@ -32,7 +32,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
   void connectSocket() {
     socket = IO.io(
-      'http://192.168.29.206:5000',
+      'http://127.0.0.1:5000',
       IO.OptionBuilder()
           .setTransports(['websocket'])
           .disableAutoConnect()
@@ -62,7 +62,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
   Future<void> fetchMessages() async {
     final url = Uri.parse(
-        'http://192.168.29.206:5000/api/chat/${widget.senderId}/${widget.receiverId}');
+        'http://127.0.0.1:5000/api/chat/${widget.senderId}/${widget.receiverId}');
     final res = await http.get(url);
     if (res.statusCode == 200) {
       final List data = jsonDecode(res.body);

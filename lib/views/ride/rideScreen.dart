@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:ridematch/views/ride_detail/ridedetails.dart';
+import 'package:ridematch/services/ride_service.dart';
 
 class RideScreen extends StatefulWidget {
   const RideScreen({super.key});
@@ -12,40 +13,37 @@ class RideScreen extends StatefulWidget {
 }
 
 class _RideScreenState extends State<RideScreen> {
+  List<Map<String, dynamic>> rides = [];
+  bool isLoading = true;
+  String? errorMessage;
 
+  @override
+  void initState() {
+    super.initState();
+    _loadRides();
+  }
 
-  final List<Map<String, dynamic>> rides = [
-    {
-      "from": "Indore",
-      "to": "Bhopal",
-      "date": "27 Oct 2025",
-      "time": "10:30 AM",
-      "seats": 3,
-      "amount": 250,
-      "carName": "Hyundai i20",
-      "carNumber": "MP09AB1234",
-      "carColor": "White",
-      "rating": 4.5,
-      "driver": "Rahul Sharma",
-      "driverImage":
-      "https://i.pravatar.cc/150?img=47",
-    },
-    {
-      "from": "Dewas",
-      "to": "Indore",
-      "date": "28 Oct 2025",
-      "time": "6:00 PM",
-      "seats": 2,
-      "amount": 180,
-      "carName": "Maruti Baleno",
-      "carNumber": "MP41XY7890",
-      "carColor": "Blue",
-      "rating": 4.8,
-      "driver": "Priya Verma",
-      "driverImage":
-      "https://i.pravatar.cc/150?img=12",
-    },
-  ];
+  Future<void> _loadRides() async {
+    try {
+      setState(() {
+        isLoading = true;
+        errorMessage = null;
+      });
+
+      final fetchedRides = await RideService.fetchNearbyRides();
+
+      setState(() {
+        rides = fetchedRides;
+        isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        isLoading = false;
+        errorMessage = e.toString();
+      });
+      print('Error loading rides: $e');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -60,11 +58,96 @@ class _RideScreenState extends State<RideScreen> {
         ),
         elevation: 0,
         centerTitle: true,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh, color: Colors.white),
+            onPressed: _loadRides,
+          ),
+        ],
       ),
-      body: ListView.builder(
-        itemCount: rides.length,
-        padding: const EdgeInsets.all(16),
-        itemBuilder: (context, index) {
+      body: isLoading
+          ? const Center(
+              child: CircularProgressIndicator(
+                color: Color(0xff113F67),
+              ),
+            )
+          : errorMessage != null
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(
+                        Icons.error_outline,
+                        size: 64,
+                        color: Colors.red,
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        "Failed to load rides",
+                        style: GoogleFonts.dmSans(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 32),
+                        child: Text(
+                          errorMessage!,
+                          textAlign: TextAlign.center,
+                          style: GoogleFonts.dmSans(
+                            fontSize: 14,
+                            color: Colors.grey,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      ElevatedButton(
+                        onPressed: _loadRides,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xff113F67),
+                        ),
+                        child: Text(
+                          "Retry",
+                          style: GoogleFonts.dmSans(color: Colors.white),
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              : rides.isEmpty
+                  ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(
+                            Icons.directions_car_outlined,
+                            size: 64,
+                            color: Colors.grey,
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            "No rides available",
+                            style: GoogleFonts.dmSans(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            "Check back later for new rides",
+                            style: GoogleFonts.dmSans(
+                              fontSize: 14,
+                              color: Colors.grey,
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                  : ListView.builder(
+                      itemCount: rides.length,
+                      padding: const EdgeInsets.all(16),
+                      itemBuilder: (context, index) {
           final ride = rides[index];
           return Container(
             margin: const EdgeInsets.only(bottom: 16),
@@ -87,7 +170,7 @@ class _RideScreenState extends State<RideScreen> {
                   Row(
                     children: [
                       CircleAvatar(
-                        backgroundImage: NetworkImage(ride["driverImage"]),
+                        backgroundImage: NetworkImage(ride["driverImage"]?.toString() ?? "https://i.pravatar.cc/150"),
                         radius: 28,
                       ),
                       const SizedBox(width: 12),
@@ -96,7 +179,7 @@ class _RideScreenState extends State<RideScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              ride["driver"],
+                              ride["driver"]?.toString() ?? "Unknown",
                               style: GoogleFonts.dmSans(
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold,
@@ -104,7 +187,7 @@ class _RideScreenState extends State<RideScreen> {
                               ),
                             ),
                             RatingBarIndicator(
-                              rating: ride["rating"],
+                              rating: (ride["rating"] ?? 0).toDouble(),
                               itemBuilder: (context, _) => const Icon(
                                 Icons.star,
                                 color: Colors.amber,
@@ -140,7 +223,7 @@ class _RideScreenState extends State<RideScreen> {
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
-                          ride["from"],
+                          ride["from"]?.toString() ?? "",
                           style: GoogleFonts.dmSans(
                               fontSize: 16, fontWeight: FontWeight.w500),
                         ),
@@ -149,7 +232,7 @@ class _RideScreenState extends State<RideScreen> {
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
-                          ride["to"],
+                          ride["to"]?.toString() ?? "",
                           style: GoogleFonts.dmSans(
                               fontSize: 16, fontWeight: FontWeight.w500),
                         ),
@@ -160,8 +243,8 @@ class _RideScreenState extends State<RideScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      _infoChip(Icons.calendar_today, ride["date"]),
-                      _infoChip(Icons.access_time, ride["time"]),
+                      _infoChip(Icons.calendar_today, ride["date"]?.toString() ?? ""),
+                      _infoChip(Icons.access_time, ride["time"]?.toString() ?? ""),
                       _infoChip(Icons.airline_seat_recline_normal,
                           "${ride["seats"]} seats"),
                     ],
@@ -179,11 +262,11 @@ class _RideScreenState extends State<RideScreen> {
                             color: Color(0xff09205f)),
                         const SizedBox(width: 8),
                         Expanded(
-                          child: Text(
-                            "${ride["carName"]} • ${ride["carColor"]}\n${ride["carNumber"]}",
-                            style: GoogleFonts.dmSans(
-                                fontSize: 14, color: Colors.black87),
-                          ),
+                        child: Text(
+                          "${ride["carName"]?.toString() ?? ""} • ${ride["carColor"]?.toString() ?? ""}\n${ride["carNumber"]?.toString() ?? ""}",
+                          style: GoogleFonts.dmSans(
+                              fontSize: 14, color: Colors.black87),
+                        ),
                         ),
                       ],
                     ),
@@ -243,8 +326,8 @@ class _RideScreenState extends State<RideScreen> {
               ),
             ),
           );
-        },
-      ),
+                      },
+                    ),
     );
   }
 

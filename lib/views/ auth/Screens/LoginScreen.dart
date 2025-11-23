@@ -26,7 +26,7 @@ class _LoginScreenState extends State<LoginScreen>
   late Animation<double> _fadeAnimation;
 
   // ⚙️ Your backend API URL
-  final String apiUrl = "http://192.168.29.206:5000/api/auth/login";
+  final String apiUrl = "http://127.0.0.1:5000/api/auth/login";
 
   @override
   void initState() {
@@ -98,7 +98,7 @@ class _LoginScreenState extends State<LoginScreen>
         SharedPreferences prefs = await SharedPreferences.getInstance();
         await prefs.setString('token', data['token']);
         await prefs.setString('username', data['user']['name']);
-        await prefs.setString('userId', data['user']['id']);
+        await prefs.setString('userId', data['user']['id'].toString());
 
         print("✅ UserId saved: ${data['user']['id']}");
 

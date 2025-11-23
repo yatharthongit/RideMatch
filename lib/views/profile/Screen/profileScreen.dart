@@ -39,7 +39,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     try {
       final response = await http.get(
-        Uri.parse('http://192.168.29.206:5000/api/auth/me'),
+        Uri.parse('http://127.0.0.1:5000/api/auth/me'),
         headers: {'Authorization': 'Bearer $token'},
       );
 
@@ -86,7 +86,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     var request = http.MultipartRequest(
       'POST',
-      Uri.parse('http://192.168.29.206:5000/api/auth/upload-profile'),
+      Uri.parse('http://127.0.0.1:5000/api/auth/upload-profile'),
     );
     request.headers['Authorization'] = 'Bearer $token';
     request.files.add(await http.MultipartFile.fromPath('profile', image.path));

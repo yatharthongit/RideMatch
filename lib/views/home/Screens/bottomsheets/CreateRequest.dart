@@ -106,7 +106,7 @@ class _CreateLocationRequestScreenState
       };
 
       final response = await http.post(
-        Uri.parse("http://192.168.29.206:5000/api/rides"),
+        Uri.parse("http://127.0.0.1:5000/api/rides"),
         headers: {
           "Content-Type": "application/json",
           "Authorization": "Bearer $token",
@@ -114,7 +114,7 @@ class _CreateLocationRequestScreenState
         body: json.encode(rideData),
       );
 
-      if (response.statusCode == 201) {
+      if (response.statusCode == 200 || response.statusCode == 201) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
           content: Text("✅ Ride created successfully!"),
           backgroundColor: Colors.green,

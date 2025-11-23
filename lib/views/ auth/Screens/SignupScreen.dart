@@ -25,7 +25,7 @@ class _SignUpScreenState extends State<SignUpScreen>
   late Animation<double> _fadeAnimation;
 
   // final String apiUrl = "http://10.0.2.2:5000/api/auth/register";
-  final String apiUrl = "http://192.168.29.206:5000/api/auth/register";  // for signup
+  final String apiUrl = "http://127.0.0.1:5000/api/auth/register";  // for signup
 
   @override
   void initState() {

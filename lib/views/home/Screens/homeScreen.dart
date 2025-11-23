@@ -82,7 +82,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
     try {
       final res = await http.get(
-        Uri.parse('http://192.168.29.206:5000/api/user/profile'),
+        Uri.parse('http://127.0.0.1:5000/api/user/profile'),
         headers: {'Authorization': 'Bearer $token'},
       );
 
@@ -106,7 +106,7 @@ class _HomeScreenState extends State<HomeScreen> {
     setState(() => isLoading = true);
     try {
       final response =
-      await http.get(Uri.parse('http://192.168.29.206:5000/api/rides'));
+      await http.get(Uri.parse('http://127.0.0.1:5000/api/rides'));
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         setState(() {

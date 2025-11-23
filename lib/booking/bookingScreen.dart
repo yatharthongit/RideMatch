@@ -43,7 +43,7 @@ class _BookingScreenState extends State<BookingScreen> {
       String? token = prefs.getString('token'); // JWT token
 
       final response = await http.post(
-        Uri.parse('http://192.168.29.206:5000/api/rides'), // backend endpoint
+        Uri.parse('http://127.0.0.1:5000/api/rides'), // backend endpoint
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',

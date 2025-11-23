@@ -9,7 +9,7 @@ class ChatService {
   }
 
   void initSocket() {
-    socket = IO.io('http://192.168.29.206:5000', <String, dynamic>{
+    socket = IO.io('http://127.0.0.1:5000', <String, dynamic>{
       'transports': ['websocket'],
       'autoConnect': false,
     });

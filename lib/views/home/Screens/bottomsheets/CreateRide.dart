@@ -114,7 +114,7 @@ class _CreateRideScreenState extends State<CreateRideScreen> {
 
     try {
       final response = await http.post(
-        Uri.parse("http://192.168.29.206:5000/api/rides"),
+        Uri.parse("http://127.0.0.1:5000/api/rides"),
         headers: {
           "Content-Type": "application/json",
           "Authorization": "Bearer $token",
@@ -122,7 +122,7 @@ class _CreateRideScreenState extends State<CreateRideScreen> {
         body: jsonEncode(rideData),
       );
 
-      if (response.statusCode == 201) {
+      if (response.statusCode == 200 || response.statusCode == 201) {
         final data = jsonDecode(response.body);
         final newRide = data['ride'];
 

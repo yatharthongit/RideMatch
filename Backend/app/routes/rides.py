@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from app.database import get_connection
 from pydantic import BaseModel, Field
 from app.routes.auth import get_current_user
+from datetime import date, datetime, time
 
 
 router = APIRouter(tags=["rides"])
@@ -35,8 +36,8 @@ def create_ride(data: RideCreate, user=Depends(get_current_user)):
             """
             INSERT INTO rides
             (driver_id, from_addr, to_addr, date, time, seats, amount,
-             car_name, car_number, car_color)
-            VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+             car_name, car_number, car_color, status)
+            VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
             """,
             (
                 user_id,
@@ -49,6 +50,7 @@ def create_ride(data: RideCreate, user=Depends(get_current_user)):
                 data.carDetails.name,
                 data.carDetails.number,
                 data.carDetails.color,
+                'scheduled',  # Set default status to 'scheduled'
             ),
         )
         conn.commit()
@@ -121,7 +123,8 @@ def get_nearby_rides(
     For now we ignore latitude/longitude and radius and just
     give a global feed that matches the RideScreen UI shape.
     """
-
+    print(f"🟢 Nearby rides requested by user: {user.get('id')}")
+    
     conn = get_connection()
     cursor = conn.cursor(dictionary=True)
     try:
@@ -142,7 +145,7 @@ def get_nearby_rides(
             FROM rides r
             JOIN users u ON u.id = r.driver_id
             WHERE r.status = 'scheduled'
-            ORDER BY r.ride_date, r.ride_time
+            ORDER BY r.date, r.time
             """
         )
         rows = cursor.fetchall()
@@ -151,7 +154,7 @@ def get_nearby_rides(
         for row in rows:
             # --- date formatting ---
             # If ride_date is a date object, pretty print as "27 Oct 2025"
-            ride_date = row.get("date")
+            ride_date = row.get("ride_date")
             if isinstance(ride_date, (date, datetime)):
                 date_str = ride_date.strftime("%d %b %Y")
             else:
@@ -160,7 +163,7 @@ def get_nearby_rides(
 
             # --- time formatting ---
             # If ride_time is a time object, pretty print as "10:30 AM"
-            ride_time = row.get("time")
+            ride_time = row.get("ride_time")
             if isinstance(ride_time, (time, datetime)):
                 time_str = ride_time.strftime("%I:%M %p")  # 12h with AM/PM
             else:
@@ -189,6 +192,11 @@ def get_nearby_rides(
             )
 
         return {"success": True, "rides": rides}
+    except Exception as e:
+        print(f"🔴 Error in get_nearby_rides: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
     finally:
         cursor.close()
         conn.close()
